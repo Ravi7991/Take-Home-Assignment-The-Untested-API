@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const taskService = require('../services/taskService');
-const { validateCreateTask, validateUpdateTask } = require('../utils/validators');
+const { validateCreateTask, validateUpdateTask, validateAssignee } = require('../utils/validators');
 
 router.get('/stats', (req, res) => {
   const stats = taskService.getStats();
@@ -12,13 +12,19 @@ router.get('/', (req, res) => {
   const { status, page, limit } = req.query;
 
   if (status) {
+    if (!['todo', 'in_progress', 'done'].includes(status)) {
+      return res.status(400).json({ error: 'status must be one of: todo, in_progress, done' });
+    }
     const tasks = taskService.getByStatus(status);
     return res.json(tasks);
   }
 
   if (page !== undefined || limit !== undefined) {
-    const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 10;
+    const pageNum = Number(page ?? 1);
+    const limitNum = Number(limit ?? 10);
+    if (!Number.isInteger(pageNum) || pageNum < 1 || !Number.isInteger(limitNum) || limitNum < 1) {
+      return res.status(400).json({ error: 'page and limit must be positive integers' });
+    }
     const tasks = taskService.getPaginated(pageNum, limitNum);
     return res.json(tasks);
   }
@@ -47,6 +53,17 @@ router.put('/:id', (req, res) => {
   if (!task) {
     return res.status(404).json({ error: 'Task not found' });
   }
+
+  res.json(task);
+});
+
+router.patch('/:id/assign', (req, res) => {
+  const error = validateAssignee(req.body);
+  if (error) return res.status(400).json({ error });
+
+  const task = taskService.assignTask(req.params.id, req.body.assignee.trim());
+  if (task === null) return res.status(404).json({ error: 'Task not found' });
+  if (task === false) return res.status(409).json({ error: 'Task is already assigned' });
 
   res.json(task);
 });

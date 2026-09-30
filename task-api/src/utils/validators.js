@@ -2,6 +2,9 @@ const VALID_STATUSES = ['todo', 'in_progress', 'done'];
 const VALID_PRIORITIES = ['low', 'medium', 'high'];
 
 const validateCreateTask = (body) => {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return 'request body must be an object';
+  }
   if (!body.title || typeof body.title !== 'string' || body.title.trim() === '') {
     return 'title is required and must be a non-empty string';
   }
@@ -11,13 +14,16 @@ const validateCreateTask = (body) => {
   if (body.priority && !VALID_PRIORITIES.includes(body.priority)) {
     return `priority must be one of: ${VALID_PRIORITIES.join(', ')}`;
   }
-  if (body.dueDate && isNaN(Date.parse(body.dueDate))) {
+  if (body.dueDate !== undefined && body.dueDate !== null && (typeof body.dueDate !== 'string' || isNaN(Date.parse(body.dueDate)))) {
     return 'dueDate must be a valid ISO date string';
   }
   return null;
 };
 
 const validateUpdateTask = (body) => {
+  if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length === 0) {
+    return 'request body must be a non-empty object';
+  }
   if (body.title !== undefined && (typeof body.title !== 'string' || body.title.trim() === '')) {
     return 'title must be a non-empty string';
   }
@@ -27,10 +33,17 @@ const validateUpdateTask = (body) => {
   if (body.priority && !VALID_PRIORITIES.includes(body.priority)) {
     return `priority must be one of: ${VALID_PRIORITIES.join(', ')}`;
   }
-  if (body.dueDate && isNaN(Date.parse(body.dueDate))) {
+  if (body.dueDate !== undefined && body.dueDate !== null && (typeof body.dueDate !== 'string' || isNaN(Date.parse(body.dueDate)))) {
     return 'dueDate must be a valid ISO date string';
   }
   return null;
 };
 
-module.exports = { validateCreateTask, validateUpdateTask };
+const validateAssignee = (body) => {
+  if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.assignee !== 'string' || body.assignee.trim() === '') {
+    return 'assignee is required and must be a non-empty string';
+  }
+  return null;
+};
+
+module.exports = { validateCreateTask, validateUpdateTask, validateAssignee };
